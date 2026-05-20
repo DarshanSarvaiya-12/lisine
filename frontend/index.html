@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lisine — AI Chat</title>
+  <style>
+    :root{
+      --bg1:#f7fbff;
+      --bg2:#eef2ff;
+      --bg3:#fdf2ff;
+      --card:rgba(255,255,255,.55);
+      --card-strong:rgba(255,255,255,.78);
+      --border:rgba(255,255,255,.55);
+      --text:#1f2a44;
+      --muted:#667085;
+      --primary:#6c63ff;
+      --secondary:#28c7fa;
+      --accent:#ff7ac6;
+      --success:#22c55e;
+      --shadow:0 18px 45px rgba(92, 112, 255, .12);
+      --radius:28px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(circle at top left, #dbeafe 0%, transparent 28%),
+        radial-gradient(circle at top right, #fce7f3 0%, transparent 24%),
+        radial-gradient(circle at bottom left, #e9d5ff 0%, transparent 25%),
+        linear-gradient(135deg, var(--bg1), var(--bg2) 50%, var(--bg3));
+      overflow:hidden;
+    }
+
+    .app{
+      width:100%;
+      height:100%;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      padding:14px;
+    }
+
+    .shell{
+      width:min(100%, 980px);
+      height:min(100vh - 28px, 980px);
+      display:flex;
+      flex-direction:column;
+      border:1px solid rgba(255,255,255,.7);
+      background:var(--card);
+      backdrop-filter:blur(18px);
+      -webkit-backdrop-filter:blur(18px);
+      border-radius:32px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      position:relative;
+    }
+
+    .shell::before,
+    .shell::after{
+      content:"";
+      position:absolute;
+      width:220px;
+      height:220px;
+      border-radius:50%;
+      filter:blur(8px);
+      opacity:.22;
+      pointer-events:none;
+    }
+
+    .shell::before{
+      top:-70px;
+      right:-70px;
+      background:radial-gradient(circle, var(--accent), transparent 65%);
+    }
+
+    .shell::after{
+      bottom:-90px;
+      left:-90px;
+      background:radial-gradient(circle, var(--secondary), transparent 65%);
+    }
+
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:18px 18px 14px;
+      border-bottom:1px solid rgba(255,255,255,.55);
+      background:rgba(255,255,255,.18);
+      z-index:1;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      min-width:0;
+    }
+
+    .logo{
+      width:48px;
+      height:48px;
+      border-radius:16px;
+      display:grid;
+      place-items:center;
+      font-weight:800;
+      color:#fff;
+      background:linear-gradient(135deg, var(--primary), var(--accent));
+      box-shadow:0 12px 24px rgba(108,99,255,.25);
+      flex:0 0 auto;
+    }
+
+    .brand h1{
+      margin:0;
+      font-size:1.12rem;
+      line-height:1.2;
+      letter-spacing:.2px;
+    }
+
+    .brand p{
+      margin:3px 0 0;
+      font-size:.84rem;
+      color:var(--muted);
+    }
+
+    .actions{
+      display:flex;
+      gap:10px;
+      flex:0 0 auto;
+    }
+
+    .btn{
+      border:0;
+      cursor:pointer;
+      border-radius:16px;
+      padding:10px 14px;
+      font-weight:700;
+      color:#fff;
+      background:linear-gradient(135deg, var(--primary), #8b5cf6);
+      box-shadow:0 10px 20px rgba(108,99,255,.18);
+      transition:transform .18s ease, opacity .18s ease;
+    }
+
+    .btn.secondary{
+      background:linear-gradient(135deg, var(--secondary), #38bdf8);
+    }
+
+    .btn.ghost{
+      background:rgba(255,255,255,.45);
+      color:var(--text);
+      border:1px solid rgba(255,255,255,.75);
+      box-shadow:none;
+    }
+
+    .btn:hover{transform:translateY(-1px)}
+    .btn:active{transform:translateY(0)}
+    .btn:disabled{opacity:.6; cursor:not-allowed}
+
+    .content{
+      display:grid;
+      grid-template-columns: 1.1fr .42fr;
+      gap:14px;
+      padding:14px;
+      height:100%;
+      min-height:0;
+      z-index:1;
+    }
+
+    .chat-card, .side-card{
+      background:var(--card-strong);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      box-shadow:0 16px 32px rgba(59, 130, 246, .08);
+      overflow:hidden;
+      min-height:0;
+    }
+
+    .chat-card{
+      display:flex;
+      flex-direction:column;
+    }
+
+    .chat-area{
+      padding:18px;
+      overflow:auto;
+      flex:1;
+      min-height:0;
+      scroll-behavior:smooth;
+    }
+
+    .message-row{
+      display:flex;
+      margin-bottom:14px;
+      gap:10px;
+      align-items:flex-end;
+    }
+
+    .message-row.user{
+      justify-content:flex-end;
+    }
+
+    .bubble{
+      max-width:min(82%, 560px);
+      padding:14px 16px;
+      border-radius:22px;
+      line-height:1.55;
+      font-size:.98rem;
+      word-wrap:break-word;
+      white-space:normal;
+      box-shadow:0 8px 18px rgba(0,0,0,.06);
+    }
+
+    .bubble.bot{
+      background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(245,247,255,.92));
+      border:1px solid rgba(108,99,255,.12);
+      border-top-left-radius:8px;
+    }
+
+    .bubble.user{
+      color:#fff;
+      background:linear-gradient(135deg, var(--primary), var(--accent));
+      border-top-right-radius:8px;
+    }
+
+    .meta{
+      margin-top:6px;
+      font-size:.75rem;
+      color:rgba(102,112,133,.85);
+    }
+
+    .bubble.bot ul,
+    .bubble.bot ol{
+      margin:8px 0 0 20px;
+      padding:0;
+    }
+
+    .bubble.bot li{
+      margin:4px 0;
+    }
+
+    .typing{
+      display:none;
+      align-items:center;
+      gap:8px;
+      padding:0 18px 16px;
+      color:var(--muted);
+      font-size:.92rem;
+    }
+
+    .typing.visible{display:flex}
+
+    .dots{
+      display:inline-flex;
+      gap:4px;
+      align-items:center;
+    }
+
+    .dots span{
+      width:8px;
+      height:8px;
+      border-radius:50%;
+      background:linear-gradient(135deg, var(--primary), var(--accent));
+      animation:bounce 1s infinite ease-in-out;
+    }
+
+    .dots span:nth-child(2){animation-delay:.15s}
+    .dots span:nth-child(3){animation-delay:.3s}
+
+    @keyframes bounce{
+      0%, 80%, 100%{transform:translateY(0); opacity:.55}
+      40%{transform:translateY(-6px); opacity:1}
+    }
+
+    .composer{
+      padding:14px;
+      border-top:1px solid rgba(255,255,255,.65);
+      background:rgba(255,255,255,.22);
+    }
+
+    .chips{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-bottom:12px;
+    }
+
+    .chip{
+      border:1px solid rgba(108,99,255,.18);
+      background:rgba(255,255,255,.7);
+      color:var(--text);
+      border-radius:999px;
+      padding:10px 13px;
+      font-size:.9rem;
+      cursor:pointer;
+      transition:transform .18s ease, background .18s ease;
+    }
+
+    .chip:hover{transform:translateY(-1px); background:#fff}
+
+    .input-wrap{
+      display:flex;
+      gap:10px;
+      align-items:flex-end;
+    }
+
+    .input{
+      flex:1;
+      min-height:54px;
+      max-height:140px;
+      resize:none;
+      border:1px solid rgba(108,99,255,.15);
+      background:rgba(255,255,255,.8);
+      border-radius:18px;
+      padding:14px 15px;
+      outline:none;
+      color:var(--text);
+      font-size:1rem;
+      line-height:1.45;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.7);
+    }
+
+    .input::placeholder{color:#93a0b5}
+
+    .send{
+      min-width:96px;
+      height:54px;
+      border-radius:18px;
+    }
+
+    .side-card{
+      display:flex;
+      flex-direction:column;
+      padding:18px;
+      gap:14px;
+      overflow:auto;
+    }
+
+    .panel{
+      background:rgba(255,255,255,.72);
+      border:1px solid rgba(255,255,255,.65);
+      border-radius:22px;
+      padding:16px;
+    }
+
+    .panel h2{
+      margin:0 0 8px;
+      font-size:1rem;
+    }
+
+    .panel p{
+      margin:0;
+      color:var(--muted);
+      line-height:1.55;
+      font-size:.95rem;
+    }
+
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      font-size:.86rem;
+      padding:9px 12px;
+      border-radius:999px;
+      background:linear-gradient(135deg, rgba(40,199,250,.16), rgba(255,122,198,.16));
+      border:1px solid rgba(108,99,255,.10);
+      color:var(--text);
+      margin-top:10px;
+    }
+
+    .status{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      font-size:.92rem;
+      color:var(--muted);
+    }
+
+    .dot{
+      width:10px;
+      height:10px;
+      border-radius:50%;
+      background:var(--success);
+      box-shadow:0 0 0 6px rgba(34,197,94,.10);
+    }
+
+    .footer-note{
+      margin-top:auto;
+      font-size:.82rem;
+      color:#8090a7;
+      line-height:1.45;
+    }
+
+    .hidden{display:none !important;}
+
+    @media (max-width: 920px){
+      .content{
+        grid-template-columns:1fr;
+      }
+      .side-card{
+        display:none;
+      }
+    }
+
+    @media (max-width: 640px){
+      .app{padding:0}
+      .shell{
+        height:100vh;
+        border-radius:0;
+      }
+      .topbar{
+        padding:14px 14px 12px;
+      }
+      .logo{width:42px;height:42px;border-radius:14px}
+      .brand h1{font-size:1rem}
+      .brand p{font-size:.78rem}
+      .content{padding:10px}
+      .chat-area{padding:14px}
+      .bubble{max-width:88%; font-size:.96rem}
+      .composer{padding:12px}
+      .chips{gap:8px}
+      .chip{padding:9px 11px; font-size:.84rem}
+      .send{min-width:84px}
+      .input{font-size:16px}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="shell">
+      <div class="topbar">
+        <div class="brand">
+          <div class="logo">L</div>
+          <div>
+            <h1>Lisine</h1>
+            <p>Colourful AI chat for mobile</p>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn ghost" id="clearBtn" type="button">Clear</button>
+          <button class="btn secondary" id="demoBtn" type="button">Demo</button>
+        </div>
+      </div>
+
+      <div class="content">
+        <section class="chat-card">
+          <div class="chat-area" id="chatArea">
+            <div class="message-row bot">
+              <div class="bubble bot">
+                Hello. I am <b>Lisine AI</b>.
+                <div class="meta">I reply in clear point-to-point format.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="typing" id="typing">
+            <span>Thinking</span>
+            <span class="dots"><span></span><span></span><span></span></span>
+          </div>
+
+          <div class="composer">
+            <div class="chips">
+              <button class="chip" type="button" data-prompt="Explain AI chat website architecture in points.">Architecture</button>
+              <button class="chip" type="button" data-prompt="Give me a mobile friendly UI structure for Lisine in points.">UI Structure</button>
+              <button class="chip" type="button" data-prompt="How should frontend connect to backend? Explain in points.">Connect Flow</button>
+            </div>
+
+            <div class="input-wrap">
+              <textarea
+                class="input"
+                id="messageInput"
+                rows="1"
+                placeholder="Type your message..."
+              ></textarea>
+              <button class="btn send" id="sendBtn" type="button">Send</button>
+            </div>
+          </div>
+        </section>
+
+        <aside class="side-card">
+          <div class="panel">
+            <h2>Project style</h2>
+            <p>Modern UI UX, glassmorphism, soft gradients, rounded cards, and no black theme.</p>
+            <div class="badge">Mobile friendly design</div>
+          </div>
+
+          <div class="panel">
+            <h2>Gemini setup</h2>
+            <p>Your backend should call Gemini 2.5 Flash Lite using your Render environment variable.</p>
+            <div class="badge">API key stays server-side</div>
+          </div>
+
+          <div class="panel">
+            <h2>Reply format</h2>
+            <p>The backend prompt should instruct Gemini to answer only in point form for every response.</p>
+          </div>
+
+          <div class="status">
+            <span class="dot"></span>
+            <span>Ready for chat</span>
+          </div>
+
+          <div class="footer-note">
+            Frontend file only. Backend can be connected later with Render.
+          </div>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const chatArea = document.getElementById("chatArea");
+    const typing = document.getElementById("typing");
+    const messageInput = document.getElementById("messageInput");
+    const sendBtn = document.getElementById("sendBtn");
+    const clearBtn = document.getElementById("clearBtn");
+    const demoBtn = document.getElementById("demoBtn");
+
+    // Change this after deploying your backend on Render.
+    const API_URL = "https://YOUR-RENDER-SERVICE.onrender.com/api/chat";
+
+    let messages = [
+      {
+        role: "assistant",
+        text: "Hello. I am Lisine AI.\n\n- Ask anything about your website\n- I will answer in points\n- I am mobile friendly"
+      }
+    ];
+
+    function escapeHTML(str) {
+      return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function formatMessage(text) {
+      const safe = escapeHTML(text).trim();
+      const lines = safe.split(/\n+/).map(line => line.trim()).filter(Boolean);
+
+      const looksLikeList = lines.some(line => /^(\- |\* |\d+[\.\)] )/.test(line));
+      if (!looksLikeList) {
+        return `<div>${safe.replace(/\n/g, "<br>")}</div>`;
+      }
+
+      const items = lines.map(line => {
+        const cleaned = line.replace(/^(\- |\* |\d+[\.\)] )/, "");
+        return `<li>${cleaned}</li>`;
+      }).join("");
+
+      return `<ul>${items}</ul>`;
+    }
+
+    function scrollToBottom() {
+      chatArea.scrollTop = chatArea.scrollHeight;
+    }
+
+    function renderMessages() {
+      chatArea.innerHTML = "";
+      messages.forEach(msg => {
+        const row = document.createElement("div");
+        row.className = `message-row ${msg.role === "user" ? "user" : "bot"}`;
+
+        const bubble = document.createElement("div");
+        bubble.className = `bubble ${msg.role === "user" ? "user" : "bot"}`;
+        bubble.innerHTML = formatMessage(msg.text);
+
+        row.appendChild(bubble);
+        chatArea.appendChild(row);
+      });
+      scrollToBottom();
+    }
+
+    function addMessage(role, text) {
+      messages.push({ role, text });
+      renderMessages();
+    }
+
+    function setTyping(state) {
+      typing.classList.toggle("visible", state);
+      sendBtn.disabled = state;
+      messageInput.disabled = state;
+    }
+
+    function autoResize() {
+      messageInput.style.height = "auto";
+      messageInput.style.height = Math.min(messageInput.scrollHeight, 140) + "px";
+    }
+
+    function buildDemoResponse(prompt) {
+      return `- This is a demo response.\n- Your backend is not connected yet.\n- When backend is ready, Gemini will answer through Render.\n- Prompt received: ${prompt}`;
+    }
+
+    async function sendMessage() {
+      const text = messageInput.value.trim();
+      if (!text) return;
+
+      addMessage("user", text);
+      messageInput.value = "";
+      autoResize();
+      setTyping(true);
+
+      try {
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: text })
+        });
+
+        if (!response.ok) {
+          throw new Error("Backend request failed");
+        }
+
+        const data = await response.json();
+        const reply = data.reply || data.message || "No reply received.";
+        addMessage("assistant", reply);
+      } catch (error) {
+        addMessage("assistant", buildDemoResponse(text));
+      } finally {
+        setTyping(false);
+        messageInput.focus();
+      }
+    }
+
+    messageInput.addEventListener("input", autoResize);
+
+    messageInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    sendBtn.addEventListener("click", sendMessage);
+
+    document.querySelectorAll(".chip").forEach(btn => {
+      btn.addEventListener("click", () => {
+        messageInput.value = btn.dataset.prompt;
+        autoResize();
+        messageInput.focus();
+      });
+    });
+
+    clearBtn.addEventListener("click", () => {
+      messages = [
+        {
+          role: "assistant",
+          text: "Chat cleared.\n\n- Type your next question\n- I will answer in points"
+        }
+      ];
+      renderMessages();
+    });
+
+    demoBtn.addEventListener("click", () => {
+      addMessage("assistant",
+        "- Lisine is a colorful AI chat website.\n- It uses glassmorphism UI.\n- It is optimized for mobile.\n- Backend will call Gemini 2.5 Flash Lite.\n- Responses should stay in points."
+      );
+    });
+
+    renderMessages();
+    autoResize();
+  </script>
+</body>
+</html>
