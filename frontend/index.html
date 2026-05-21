@@ -1,350 +1,141 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lisine — Simple AI Chat</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lisine</title>
   <style>
-    /* 1. Global Setup & Soft Palette */
-    :root {
-      --bg-gradient: linear-gradient(135deg, #f7fbff, #eef2ff, #fdf2ff);
-      --glass: rgba(255, 255, 255, 0.5);
-      --glass-strong: rgba(255, 255, 255, 0.85);
-      --border: rgba(255, 255, 255, 0.6);
-      --text: #1f2a44;
-      --muted: #667085;
-      --primary: linear-gradient(135deg, #6c63ff, #ff7ac6);
-      --shadow: 0 12px 35px rgba(92, 112, 255, 0.1);
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    
     body {
-      font-family: system-ui, -apple-system, sans-serif;
-      color: var(--text);
-      background: var(--bg-gradient);
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 12px;
-    }
-
-    /* 2. Main Layout Shell - Height Restricted */
-    .chat-container {
-      width: min(100%, 760px);
-      height: min(100vh - 24px, 650px); /* Lower height limit */
-      background: var(--glass);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid var(--border);
-      border-radius: 24px;
-      box-shadow: var(--shadow);
+      font-family: sans-serif;
+      background: #fff;
       display: flex;
       flex-direction: column;
-      overflow: hidden;
+      height: 100vh;
     }
 
-    /* 3. Top Header Bar */
-    .header {
-      padding: 14px 18px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .brand { display: flex; align-items: center; gap: 10px; }
-    
-    .logo {
-      width: 38px;
-      height: 38px;
-      background: var(--primary);
-      color: white;
-      border-radius: 12px;
-      display: grid;
-      place-items: center;
-      font-weight: bold;
-    }
-
-    .brand h1 { font-size: 1.05rem; }
-    .brand p { font-size: 0.8rem; color: var(--muted); }
-
-    .clear-btn {
-      background: rgba(255,255,255,0.6);
-      border: 1px solid var(--border);
-      padding: 6px 12px;
-      border-radius: 12px;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 0.85rem;
-      color: var(--text);
-    }
-
-    /* 4. Chat View Area */
-    .chat-area {
+    #chat {
       flex: 1;
-      padding: 16px;
       overflow-y: auto;
+      padding: 16px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
     }
 
-    .msg-row { display: flex; width: 100%; }
-    .msg-row.user { justify-content: flex-end; }
-
-    .bubble {
-      max-width: 85%;
+    .msg {
+      max-width: 75%;
       padding: 10px 14px;
-      border-radius: 18px;
-      font-size: 0.95rem;
-      line-height: 1.45;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+      border-radius: 12px;
+      font-size: 15px;
+      line-height: 1.5;
+      border: 1.5px solid #1a73e8;
+      color: #111;
     }
 
-    .bubble.bot {
-      background: var(--glass-strong);
-      border: 1px solid rgba(108,99,255,0.1);
-      border-top-left-radius: 4px;
+    .msg.user {
+      align-self: flex-end;
+      background: #e8f0fe;
     }
 
-    .bubble.user {
-      background: var(--primary);
-      color: white;
-      border-top-right-radius: 4px;
+    .msg.bot {
+      align-self: flex-start;
+      background: #fff;
     }
 
-    /* Simple point-to-point listing style */
-    .bubble ul { margin-left: 18px; padding-top: 4px; }
-    .bubble li { margin: 4px 0; }
-
-    /* Typing Status Indicator */
-    .typing {
-      padding: 0 16px 12px;
-      font-size: 0.85rem;
-      color: var(--muted);
-      display: none;
-    }
-    .typing.show { display: block; }
-
-    /* 5. Bottom Interactive Input Dock */
-    .input-dock {
-      padding: 12px;
-      border-top: 1px solid var(--border);
-      background: rgba(255,255,255,0.2);
-    }
-
-    .chips {
+    #input-row {
       display: flex;
-      gap: 8px;
-      overflow-x: auto;
-      margin-bottom: 10px;
-      padding-bottom: 4px;
+      align-items: center;
+      padding: 12px 16px;
+      border-top: 1.5px solid #1a73e8;
+      gap: 10px;
+      background: #fff;
     }
 
-    /* Hidden scrollbars for clean look */
-    .chips::-webkit-scrollbar { display: none; }
-    .chips { -ms-overflow-style: none; scrollbar-width: none; }
-
-    .chip {
-      background: var(--glass-strong);
-      border: 1px solid var(--border);
-      padding: 6px 12px;
-      border-radius: 999px;
-      font-size: 0.82rem;
-      cursor: pointer;
-      white-space: nowrap;
-      color: var(--text);
-    }
-
-    .form-box { display: flex; gap: 8px; }
-    
-    .text-input {
+    #msg-input {
       flex: 1;
-      height: 44px;
-      border: 1px solid rgba(108,99,255,0.15);
-      background: var(--glass-strong);
-      border-radius: 14px;
-      padding: 0 14px;
+      padding: 10px 14px;
+      border: 1.5px solid #1a73e8;
+      border-radius: 24px;
+      font-size: 15px;
       outline: none;
-      font-size: 0.95rem;
-      color: var(--text);
+      color: #111;
     }
 
-    .send-btn {
-      background: var(--primary);
-      color: white;
+    #msg-input::placeholder { color: #aaa; }
+
+    #send-btn {
+      background: none;
       border: none;
-      padding: 0 18px;
-      border-radius: 14px;
-      font-weight: bold;
       cursor: pointer;
+      padding: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
-    .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    /* 6. Responsive Mobile Optimization */
-    @media (max-width: 600px) {
-      body { padding: 0; }
-      .chat-container {
-        width: 100vw;
-        height: 100vh;
-        border-radius: 0;
-        border: none;
-      }
-      .text-input { font-size: 16px; } /* Stops iOS auto-zoom structural glitches */
+    #send-btn svg {
+      fill: #1a73e8;
+      width: 28px;
+      height: 28px;
+      transition: opacity 0.2s;
     }
+
+    #send-btn:hover svg { opacity: 0.7; }
   </style>
 </head>
 <body>
 
-  <div class="chat-container">
-    <!-- Header Block -->
-    <header class="header">
-      <div class="brand">
-        <div class="logo">L</div>
-        <div>
-          <h1>Lisine</h1>
-          <p>AI Points Assistant</p>
-        </div>
-      </div>
-      <button class="clear-btn" id="clearBtn">Clear</button>
-    </header>
+  <div id="chat"></div>
 
-    <!-- Dynamic Output Area -->
-    <main class="chat-area" id="chatArea">
-      <div class="msg-row bot">
-        <div class="bubble bot">
-          Hello! I am Lisine AI.
-          <ul>
-            <li>I format my replies cleanly in point form.</li>
-            <li>Ask me any technical or design questions.</li>
-          </ul>
-        </div>
-      </div>
-    </main>
-
-    <!-- Action/Input Area -->
-    <footer class="input-dock">
-      <div class="chips">
-        <button class="chip" data-txt="Explain AI chat website architecture in points.">Architecture</button>
-        <button class="chip" data-txt="Give me a mobile friendly UI structure for Lisine in points.">UI Layout</button>
-        <button class="chip" data-txt="How should frontend connect to backend? Explain in points.">Connection Flow</button>
-      </div>
-
-      <div class="typing" id="typingStatus">Lisine is thinking...</div>
-
-      <div class="form-box">
-        <input type="text" class="text-input" id="userInput" placeholder="Ask something..." autocomplete="off">
-        <button class="send-btn" id="sendBtn">Send</button>
-      </div>
-    </footer>
+  <div id="input-row">
+    <input id="msg-input" type="text" placeholder="Message Lisine..." autocomplete="off" />
+    <button id="send-btn">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M2 21l21-9L2 3v7l15 2-15 2z"/>
+      </svg>
+    </button>
   </div>
 
-  <!-- 7. Streamlined JavaScript Logic -->
   <script>
-    const chatArea = document.getElementById("chatArea");
-    const userInput = document.getElementById("userInput");
-    const sendBtn = document.getElementById("sendBtn");
-    const clearBtn = document.getElementById("clearBtn");
-    const typingStatus = document.getElementById("typingStatus");
+    const chat = document.getElementById('chat');
+    const input = document.getElementById('msg-input');
+    const sendBtn = document.getElementById('send-btn');
 
-    // Live Render deployment backend API hook pointer
-    const API_URL = "https://lisine.onrender.com/api/chat";
-
-    // Helper: Converts raw text string with lines into valid HTML point listings safely
-    function convertToPointsHTML(text) {
-      const cleanLines = text.split('\n').map(line => line.trim()).filter(Boolean);
-      
-      // Check if text already has bullet notations
-      const hasBullets = cleanLines.some(l => l.startsWith('-') || l.startsWith('*') || /^\d+\./.test(l));
-      
-      if (!hasBullets) {
-        return `<div>${cleanLines.join('<br>')}</div>`;
-      }
-
-      const listItems = cleanLines.map(line => {
-        const structuralValue = line.replace(/^([-*]|\d+\.)\s*/, "");
-        return `<li>${structuralValue}</li>`;
-      }).join('');
-
-      return `<ul>${listItems}</ul>`;
+    function addMsg(text, role) {
+      const div = document.createElement('div');
+      div.className = `msg ${role}`;
+      div.textContent = text;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+      return div;
     }
 
-    // Append individual message to UI viewport frame
-    function renderMessage(role, rawText) {
-      const row = document.createElement("div");
-      row.className = `msg-row ${role}`;
+    async function send() {
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+      addMsg(text, 'user');
 
-      const bubble = document.createElement("div");
-      bubble.className = `bubble ${role}`;
-      bubble.innerHTML = convertToPointsHTML(rawText);
-
-      row.appendChild(bubble);
-      chatArea.appendChild(row);
-      chatArea.scrollTop = chatArea.scrollHeight;
-    }
-
-    // Default Demo response callback layer if backend environment is offline
-    function getDemoResponse(fallbackPrompt) {
-      return `* This is a local system demo preview.\n* Render backend service is not hooked up yet.\n* Your prompt was: "${fallbackPrompt}"`;
-    }
-
-    // Network request processing operation
-    async function handleTransmission() {
-      const query = userInput.value.trim();
-      if (!query) return;
-
-      renderMessage("user", query);
-      userInput.value = "";
-      
-      // Toggle processing layout states
-      typingStatus.classList.add("show");
-      sendBtn.disabled = true;
+      const thinking = addMsg('...', 'bot');
 
       try {
-        const response = await fetch(API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: query })
+        const res = await fetch('/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text })
         });
-
-        if (!response.ok) throw new Error();
-
-        const data = await response.json();
-        const replyText = data.reply || data.message || "No content returned.";
-        renderMessage("bot", replyText);
-
-      } catch (err) {
-        // Safe interface rollback fallback mechanism
-        setTimeout(() => {
-          renderMessage("bot", getDemoResponse(query));
-        }, 600);
-      } finally {
-        typingStatus.classList.remove("show");
-        sendBtn.disabled = false;
-        userInput.focus();
+        const data = await res.json();
+        thinking.textContent = data.reply || 'No response.';
+      } catch (e) {
+        thinking.textContent = 'Error reaching server.';
       }
     }
 
-    // Event Wireframe Triggers
-    sendBtn.addEventListener("click", handleTransmission);
-    userInput.addEventListener("keypress", (e) => { if (e.key === "Enter") handleTransmission(); });
-
-    // Quick Option Chips Interface Action hook
-    document.querySelectorAll(".chip").forEach(chip => {
-      chip.addEventListener("click", () => {
-        userInput.value = chip.dataset.txt;
-        handleTransmission();
-      });
-    });
-
-    // Flash clear log state values
-    clearBtn.addEventListener("click", () => {
-      chatArea.innerHTML = "";
-      renderMessage("bot", "* Log cache wiped.\n* Ready for next entry.");
-    });
+    sendBtn.addEventListener('click', send);
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
   </script>
+
 </body>
 </html>
