@@ -1,77 +1,37 @@
-import express from "express";
-import cors from "cors";
-import { GoogleGenAI } from "@google/genai";
+const express = require('express');
+const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
-// Basic safety check
-if (!GEMINI_API_KEY) {
-  console.error("Missing GEMINI_API_KEY in environment variables.");
-  process.exit(1);
-}
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
 
-const ai = new GoogleGenAI({
-  apiKey: GEMINI_API_KEY,
-});
+app.post('/chat', async (req, res) => {
+  const { message } = req.body;
+  if (!message) return res.status(400).json({ error: 'No message provided.' });
 
-// Middleware
-app.use(cors());
-app.use(express.json({ limit: "1mb" }));
-
-// Health check
-app.get("/", (req, res) => {
-  res.json({
-    status: "ok",
-    message: "Lisine backend is running."
-  });
-});
-
-// Chat API
-app.post("/api/chat", async (req, res) => {
   try {
-    const userMessage = req.body?.message;
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite-preview-06-17:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: message }] }]
+        })
+      }
+    );
 
-    if (!userMessage || typeof userMessage !== "string" || !userMessage.trim()) {
-      return res.status(400).json({
-        reply: "- Error: message is required."
-      });
-    }
+    const data = await response.json();
+    const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'No reply.';
+    res.json({ reply });
 
-    const prompt = `
-You are Lisine AI.
-
-Rules:
-- Answer only in point form.
-- Keep answers simple, clear, and useful.
-- Do not write long paragraphs.
-- Use short bullet points.
-- Be mobile-friendly in style.
-
-User message:
-${userMessage.trim()}
-    `.trim();
-
-    const result = await ai.models.generateContent({
-      model: "gemini-2.5-flash-lite",
-      contents: prompt,
-    });
-
-    const reply = (result.text || "").trim();
-
-    return res.json({
-      reply: reply || "- No response received."
-    });
-  } catch (error) {
-    console.error("Gemini API error:", error);
-
-    return res.status(500).json({
-      reply: "- Server error.\n- Please try again later."
-    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Gemini API error.' });
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Lisine backend running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Lisine running on port ${PORT}`));
